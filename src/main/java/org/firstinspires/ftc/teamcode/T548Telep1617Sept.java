@@ -159,6 +159,18 @@ public class T548Telep1617Sept extends OpMode {
     }
 
     public void Mechanum(){
+        final double maxPower = 1;
+
+        double joy1Y = -gamepad1.left_stick_x;
+        joy1Y = Math.abs(joy1Y) > 0.15 ? joy1Y*3/4: 0;
+        double joy1X = gamepad1.left_stick_y;
+        joy1X = Math.abs(joy1X) > 0.15 ? joy1X*3/4: 0;
+        double joy2X = gamepad1.right_stick_x;
+        joy2X = Math.abs(joy2X) > 0.15 ? joy2X*3/4: 0;
+        rf.setPower(Math.max(-maxPower, Math.min(maxPower, joy1Y + joy2X + joy1X)));
+        lf.setPower(Math.max(-maxPower, Math.min(maxPower, joy1Y + joy2X - joy1X)));
+        rr.setPower(Math.max(-maxPower, Math.min(maxPower, joy1Y - joy2X - joy1X)));
+        lr.setPower(Math.max(-maxPower, Math.min(maxPower, joy1Y - joy2X + joy1X)));
 
     }
 
@@ -219,16 +231,13 @@ public class T548Telep1617Sept extends OpMode {
 
     }
 
-    public void Mechanum(){
-
-    }
 
 
     //Main control function for Teleop
     public void loop() {
         glyphHold();
         drive();
-        //translate();
+        Mechanum();
         runLinearSlide();
     }
 

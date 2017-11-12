@@ -511,7 +511,7 @@ public class T548AutoNew extends LinearOpMode {
         rr = hardwareMap.dcMotor.get("RightBack");
         lf = hardwareMap.dcMotor.get("LeftFront");
         jsensor = hardwareMap.colorSensor.get("JewelSensor");
-        color = hardwareMap.servo.get("ColorServo");
+        //color = hardwareMap.servo.get("ColorServo");
 
 
 
@@ -528,13 +528,12 @@ public class T548AutoNew extends LinearOpMode {
         lf.setPower(0);
         lr.setPower(0);
         rr.setPower(0);
-        color.setPosition(0.5);
+        //color.setPosition(0.5);
 
 
 
         // choose team color and delay start time
         //CHANGE
-        jsensor.setI2cAddress(I2cAddr.create8bit(0x28));
         RobotSleep(500);
         SelectTeamColor();
         String debugMsg = "T548 InitializeRobot. BlueTeam " + blueTeam + " DelayStart " + delayStartTime;
@@ -551,15 +550,15 @@ public class T548AutoNew extends LinearOpMode {
         if (beaconColor == BEACON_BLUE) {
             if (blueTeam) {
                 // Move to the position where the sensor were
-                DriveForwardByEncoder(0.3, 5, 3000);
+                DriveBackwardByEncoder(0.3, 5, 3000);
             } else {
-                DriveForwardByEncoder(0.2, 1.0, 2000);
+                DriveBackwardByEncoder(0.2, 1.0, 2000);
             }
             RobotSleep(200);
         } else if (beaconColor == BEACON_RED) {
             // Beacon is red at sensing position
             if (blueTeam) {
-                DriveBackwardByEncoder(0.2, 1, 2000);
+                DriveForwardByEncoder(0.2, 1, 2000);
             } else {
                 // Move to the other button
                 //DriveForwardByEncoder(0.3, 5, 3000);
@@ -574,7 +573,10 @@ public class T548AutoNew extends LinearOpMode {
     // Team 548 Autonomous main program
     @Override
     public void runOpMode() throws InterruptedException{
-
+        InitializeRobot();
+        waitForStart();
+        DriveForwardByEncoder(0.2,24,1200);
+        sleep(3000);
         ReadColor();
     }
 }

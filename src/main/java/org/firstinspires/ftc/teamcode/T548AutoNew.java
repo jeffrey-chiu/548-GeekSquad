@@ -62,6 +62,7 @@ public class T548AutoNew extends LinearOpMode {
     static final double WHEEL_DIAMETER_INCHES = 4.0;     // For figuring circumference
     static final double COUNTS_PER_INCH = (COUNTS_PER_MOTOR_REV * DRIVE_GEAR_REDUCTION) /
             (WHEEL_DIAMETER_INCHES * 3.1415);
+    static final int GYRO_TOLERANCE = 1; //acceptable range for gyro
 
     Servo Color;
     ColorSensor jsensor;
@@ -70,7 +71,11 @@ public class T548AutoNew extends LinearOpMode {
     DcMotor lr;
     DcMotor lf;
     Servo color;
+    Servo glyphl;
+    Servo glyphr;
+    GyroSensor g;
     private boolean blueTeam = false;
+    private boolean leftSide = false;
     private int delayStartTime = 0;
     private ElapsedTime runtime = new ElapsedTime();
 
@@ -84,13 +89,22 @@ public class T548AutoNew extends LinearOpMode {
             // do nothing
         }
     }
-    // Read the game pad to set the team color and delay start time
-    private void SelectTeamColor() throws InterruptedException {
+    // Read the game pad to set the team color and delay start time and location
+    private void SelectTeamColorAndLocation() throws InterruptedException {
         //This while loop runs forever until user presses start to break out of loop
         while (true) {
             //Pressing start breaks out of loop
             if (gamepad1.start) {
                 break;
+            }
+            if (gamepad1.dpad_left) {
+                leftSide = true;
+                RobotSleep(200);
+            }
+            //If User 1 presses dpad_right, then the team selected is blue
+            if (gamepad1.dpad_right) {
+                leftSide = false;
+                RobotSleep(200);
             }
             //If User 1 presses B, then the team selected is red
             if (gamepad1.b) {
@@ -113,10 +127,12 @@ public class T548AutoNew extends LinearOpMode {
                 RobotSleep(200);
             }
             telemetry.addData("blueTeam ", blueTeam);
+            telemetry.addData("leftSide ", leftSide);
             telemetry.addData("delayStart ", delayStartTime);
             telemetry.update();
         }
         telemetry.addData("Selected blueTeam ", blueTeam);
+        telemetry.addData("leftSide ", leftSide);
         telemetry.addData("Selected delayStart ", delayStartTime);
         telemetry.update();
     }
@@ -142,7 +158,39 @@ public class T548AutoNew extends LinearOpMode {
         rr.setPower(0);
         lr.setPower(0);
     }
+    private void TurnRight(double power){
+        rf.setPower(-power);
+        lf.setPower(power);
+        rr.setPower(-power);
+        lr.setPower(power);
+    }
 
+    private void TurnLeft(double power) {
+        rf.setPower(power);
+        lf.setPower(-power);
+        rr.setPower(power);
+        lr.setPower(-power);
+    }
+
+    private void TurnByGyroLeft(int angle, double power){
+        g.calibrate();
+        targetHeading = angle;
+        currentHeading = g.getHeading();
+        if (currentHeading > 180){
+            currentHeading = currentHeading - 360;
+        }
+        while(currentHeading > targetHeading + GYRO_TOLERANCE){
+            TurnLeft(power);
+            currentHeading = g.getHeading();
+            if (currentHeading > 180){
+                currentHeading = currentHeading - 360;
+            }
+        }
+        rf.setPower(0);
+        lf.setPower(0);
+        rr.setPower(0);
+        lr.setPower(0);
+    }
     private void DriveByTimeCoast(double leftPower, double rightPower, int driveTime) throws InterruptedException {
         rf.setPower(rightPower);
         lf.setPower(leftPower);
@@ -511,7 +559,7 @@ public class T548AutoNew extends LinearOpMode {
         rr = hardwareMap.dcMotor.get("RightBack");
         lf = hardwareMap.dcMotor.get("LeftFront");
         jsensor = hardwareMap.colorSensor.get("JewelSensor");
-        //color = hardwareMap.servo.get("ColorServo");
+        color = hardwareMap.servo.get("ColorServo");
 
 
 
@@ -528,14 +576,15 @@ public class T548AutoNew extends LinearOpMode {
         lf.setPower(0);
         lr.setPower(0);
         rr.setPower(0);
-        //color.setPosition(0.5);
+        color.setPosition(0.5);
 
 
 
         // choose team color and delay start time
         //CHANGE
+        jsensor.setI2cAddress(I2cAddr.create8bit(0x28));
         RobotSleep(500);
-        SelectTeamColor();
+        SelectTeamColorAndLocation();
         String debugMsg = "T548 InitializeRobot. BlueTeam " + blueTeam + " DelayStart " + delayStartTime;
         //DbgLog.msg(debugMsg);
     }
@@ -550,15 +599,15 @@ public class T548AutoNew extends LinearOpMode {
         if (beaconColor == BEACON_BLUE) {
             if (blueTeam) {
                 // Move to the position where the sensor were
-                DriveBackwardByEncoder(0.3, 5, 3000);
+                DriveForwardByEncoder(0.3, 5, 3000);
             } else {
-                DriveBackwardByEncoder(0.2, 1.0, 2000);
+                DriveForwardByEncoder(0.2, 1.0, 2000);
             }
             RobotSleep(200);
         } else if (beaconColor == BEACON_RED) {
             // Beacon is red at sensing position
             if (blueTeam) {
-                DriveForwardByEncoder(0.2, 1, 2000);
+                DriveBackwardByEncoder(0.2, 1, 2000);
             } else {
                 // Move to the other button
                 //DriveForwardByEncoder(0.3, 5, 3000);
@@ -568,17 +617,71 @@ public class T548AutoNew extends LinearOpMode {
             // undecided beacon color, don't prese any button
         }
     }
+    // Read the game pad to set the team location and Color
+    private void SelectTeamLocationAndColor() throws InterruptedException {
+        //This while loop runs forever until user presses start to break out of loop
+        while (true) {
+            //Pressing start breaks out of loop
+            if (gamepad1.start) {
+                break;
+            }
+            //If User 1 presses dpad_left, then the team selected is left
 
+        }
+        telemetry.addData("Selected leftSide ", leftSide);
+        telemetry.update();
+    }
 
+    //Clasp Glyph
+    private void claspGlyph() throws InterruptedException{
+        glyphl.setPosition(0.6);
+        glyphr.setPosition(0.2);
+    }
+
+    //Release Glyph
+    private void releaseGlyph() throws InterruptedException{
+        glyphl.setPosition(0);
+        glyphr.setPosition(1);
+    }
+    //Put Glyph into box
+    private void Touchdown() throws InterruptedException{
+        claspGlyph();
+        if(leftSide && blueTeam){
+            DriveForwardByEncoder(0.3, 22,2000);
+            TurnByGyroLeft(-90, 0.15);
+            DriveForwardByEncoder(0.3, 44,2000);
+            releaseGlyph();
+        }
+
+        if(!leftSide && blueTeam){
+            DriveForwardByEncoder(0.3, 30,2000);
+            TurnByGyroLeft(-90, 0.15);
+            DriveForwardByEncoder(0.3,20 ,2000);
+            releaseGlyph();
+        }
+
+        if(!leftSide && !blueTeam){
+            DriveForwardByEncoder(0.3, 22,2000);
+            TurnByGyroLeft(-90, 0.15);
+            DriveForwardByEncoder(0.3, 44,2000);
+            releaseGlyph();
+        }
+
+        if(leftSide && !blueTeam){
+            DriveForwardByEncoder(0.3, 30,2000);
+            TurnByGyroLeft(-90, 0.15);
+            DriveForwardByEncoder(0.3,20,2000);
+            releaseGlyph();
+        }
+
+        else{
+        }
+    }
     // Team 548 Autonomous main program
     @Override
     public void runOpMode() throws InterruptedException{
-        InitializeRobot();
-        waitForStart();
-        DriveForwardByEncoder(0.2,24,1200);
-        sleep(3000);
+        Touchdown();
         ReadColor();
+
     }
 }
-
-
